@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COVID-19 Global Report</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; background:#f3f2f1; color:#252423; font-size:13px; min-height:100vh; }
+  .pbi-topbar { background:#fff; border-bottom:1px solid #edebe9; padding:0 20px; display:flex; align-items:center; height:48px; gap:0; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+  .pbi-logo { display:flex; align-items:center; gap:8px; margin-right:28px; padding-right:28px; border-right:1px solid #edebe9; }
+  .pbi-logo-icon { width:22px; height:22px; background:linear-gradient(135deg,#f2c811 60%,#e8b800 100%); border-radius:3px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:900; color:#252423; }
+  .pbi-logo-text { font-size:13px; font-weight:600; color:#252423; }
+  .pbi-report-name { font-size:13px; color:#605e5c; margin-right:auto; }
+  .pbi-actions { display:flex; gap:6px; }
+  .pbi-action-btn { font-family:inherit; font-size:12px; color:#605e5c; background:none; border:none; padding:6px 10px; border-radius:2px; cursor:default; display:flex; align-items:center; gap:5px; }
+  .pbi-action-btn:hover { background:#f3f2f1; }
+  .pbi-pages { background:#fff; border-bottom:2px solid #edebe9; padding:0 20px; display:flex; align-items:flex-end; gap:2px; height:36px; }
+  .page-tab { font-family:inherit; font-size:12px; color:#605e5c; background:#f3f2f1; border:1px solid #d2d0ce; border-bottom:none; border-radius:3px 3px 0 0; padding:6px 16px; cursor:pointer; white-space:nowrap; height:30px; display:flex; align-items:center; transition:background 0.1s; }
+  .page-tab:hover { background:#edebe9; }
+  .page-tab.active { background:#fff; color:#252423; font-weight:600; border-color:#d2d0ce; border-bottom-color:#fff; height:32px; }
+  .pbi-canvas { padding:16px; min-height:calc(100vh - 84px); }
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
+  .report-title-strip { background:#1f4078; border-radius:4px; padding:12px 18px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; }
+  .report-title-strip h1 { font-size:16px; font-weight:700; color:#fff; letter-spacing:0.3px; }
+  .report-title-strip p { font-size:11px; color:#c7d9f5; margin-top:1px; }
+  .report-title-strip .stamp { font-size:10px; color:#c7d9f5; text-align:right; }
+  .kpi-row { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:12px; }
+  .kpi-card { background:#fff; border-radius:4px; padding:14px 16px 12px; box-shadow:0 1px 3px rgba(0,0,0,0.1); border-top:3px solid #1f4078; }
+  .kpi-card.red { border-top-color:#c00000; }
+  .kpi-card.green { border-top-color:#107c10; }
+  .kpi-card.amber { border-top-color:#ff8c00; }
+  .kpi-label { font-size:10px; color:#605e5c; text-transform:uppercase; letter-spacing:0.8px; font-weight:600; margin-bottom:6px; }
+  .kpi-value { font-size:22px; font-weight:700; color:#252423; line-height:1; }
+  .kpi-card.red .kpi-value { color:#c00000; }
+  .kpi-card.green .kpi-value { color:#107c10; }
+  .kpi-card.amber .kpi-value { color:#ff8c00; }
+  .kpi-sub { font-size:10px; color:#605e5c; margin-top:5px; }
+  .g2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+  .g3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:10px; }
+  .g21 { display:grid; grid-template-columns:3fr 2fr; gap:10px; margin-bottom:10px; }
+  .g12 { display:grid; grid-template-columns:2fr 3fr; gap:10px; margin-bottom:10px; }
+  .visual { background:#fff; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.1); padding:12px 14px; }
+  .visual:hover { box-shadow:0 2px 6px rgba(0,0,0,0.15); }
+  .visual-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid #f3f2f1; }
+  .visual-title { font-size:12px; font-weight:600; color:#252423; }
+  .visual-menu { font-size:16px; color:#c8c6c4; cursor:default; letter-spacing:1px; line-height:1; }
+  canvas { width:100% !important; }
+  .pbi-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .pbi-table thead tr { background:#f3f2f1; }
+  .pbi-table th { text-align:left; padding:7px 10px; font-size:11px; font-weight:700; color:#252423; border-bottom:2px solid #1f4078; white-space:nowrap; }
+  .pbi-table td { padding:6px 10px; border-bottom:1px solid #f3f2f1; color:#252423; }
+  .pbi-table tbody tr:hover { background:#f3f9ff; }
+  .num-col { text-align:right; font-variant-numeric:tabular-nums; }
+  .bar-col { width:90px; }
+  .pbi-inline-bar { height:8px; border-radius:2px; background:#1f4078; min-width:3px; }
+  .pbi-inline-bar.red { background:#c00000; }
+  .pbi-inline-bar.green { background:#107c10; }
+  .pbi-inline-bar.amber { background:#ed7d31; }
+  .rank-badge { display:inline-block; width:18px; height:18px; border-radius:50%; background:#1f4078; color:white; font-size:9px; font-weight:700; text-align:center; line-height:18px; }
+  .rank-badge.gold { background:#d4a017; }
+  .rank-badge.silver { background:#9e9e9e; }
+  .rank-badge.bronze { background:#8d5524; }
+  .slicer-visual { background:#fff; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.1); padding:12px 14px; }
+  .slicer-title { font-size:11px; font-weight:700; color:#605e5c; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:10px; }
+  .slicer-items { display:flex; flex-direction:column; gap:4px; }
+  .slicer-item { display:flex; align-items:center; gap:8px; font-size:12px; color:#252423; cursor:default; }
+  .slicer-check { width:14px; height:14px; border:1.5px solid #1f4078; border-radius:2px; background:#1f4078; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .slicer-check::after { content:'✓'; color:white; font-size:9px; font-weight:900; }
+  .slicer-check.unchecked { background:white; }
+  .slicer-check.unchecked::after { display:none; }
+  .insight-card { background:#fffbe6; border:1px solid #f2c811; border-left:4px solid #f2c811; border-radius:4px; padding:10px 14px; font-size:12px; color:#252423; line-height:1.6; margin-top:10px; }
+  .insight-card.blue { background:#f0f7ff; border-color:#1f4078; }
+  .insight-card.red { background:#fff0f0; border-color:#c00000; }
+  .insight-card.green { background:#f0fff0; border-color:#107c10; }
+  .pbi-footer { background:#fff; border-top:1px solid #edebe9; padding:6px 20px; font-size:10px; color:#a19f9d; display:flex; align-items:center; justify-content:space-between; }
+</style>
+</head>
+<body>
+
+<div class="pbi-topbar">
+  <div class="pbi-logo">
+    <div class="pbi-logo-icon">&#9889;</div>
+    <span class="pbi-logo-text">Power BI</span>
+  </div>
+  <span class="pbi-report-name">COVID-19 Global Analysis Report</span>
+  <div class="pbi-actions">
+    <button class="pbi-action-btn">&#128247; Share</button>
+    <button class="pbi-action-btn">&#128438; Export</button>
+    <button class="pbi-action-btn">&#9776; Filter</button>
+  </div>
+</div>
+
+<div class="pbi-pages">
+  <div class="page-tab active" data-tab="overview">Overview</div>
+  <div class="page-tab" data-tab="deaths">Deaths Analysis</div>
+  <div class="page-tab" data-tab="recovery">Recovery Analysis</div>
+  <div class="page-tab" data-tab="regions">Regional Breakdown</div>
+</div>
+
+<div class="pbi-canvas">
+
+  <!-- PAGE 1 -->
+  <div class="tab-panel active" id="tab-overview">
+    <div class="report-title-strip">
+      <div><h1>🦠 COVID-19 Global Dashboard</h1><p>Deaths &amp; Recovery by Country · WHO Dataset · 187 Countries</p></div>
+      <div class="stamp">Last Refreshed: Latest Snapshot<br>Data Source: WHO / Kaggle</div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi-card"><div class="kpi-label">Total Confirmed</div><div class="kpi-value">16.48M</div><div class="kpi-sub">Across 187 countries</div></div>
+      <div class="kpi-card red"><div class="kpi-label">Total Deaths</div><div class="kpi-value">654,036</div><div class="kpi-sub">3.97% of confirmed</div></div>
+      <div class="kpi-card green"><div class="kpi-label">Total Recovered</div><div class="kpi-value">9.47M</div><div class="kpi-sub">57.45% recovery rate</div></div>
+      <div class="kpi-card amber"><div class="kpi-label">Active Cases</div><div class="kpi-value">6.36M</div><div class="kpi-sub">38.6% still active</div></div>
+    </div>
+    <div class="g21">
+      <div class="visual">
+        <div class="visual-header"><span class="visual-title">Top 10 Countries by Confirmed Cases</span><span class="visual-menu">···</span></div>
+        <canvas id="confirmedChart" height="200"></canvas>
+      </div>
+      <div class="visual">
+        <div class="visual-header"><span class="visual-title">Global Case Outcome Distribution</span><span class="visual-menu">···</span></div>
+        <canvas id="outcomeChart" height="200"></canvas>
+      </div>
+    </div>
+    <div class="g12">
+      <div class="slicer-visual">
+        <div class="slicer-title">WHO Region Filter</div>
+        <div class="slicer-items">
+          <div class="slicer-item"><div class="slicer-check"></div>Americas</div>
+          <div class="slicer-item"><div class="slicer-check"></div>Europe</div>
+          <div class="slicer-item"><div class="slicer-check"></div>South-East Asia</div>
+          <div class="slicer-item"><div class="slicer-check"></div>Eastern Mediterranean</div>
+          <div class="slicer-item"><div class="slicer-check"></div>Africa</div>
+          <div class="slicer-item"><div class="slicer-check"></div>Western Pacific</div>
+        </div>
+        <div style="margin-top:14px;border-top:1px solid #f3f2f1;padding-top:12px;">
+          <div class="slicer-title">Metric</div>
+          <div class="slicer-items">
+            <div class="slicer-item"><div class="slicer-check"></div>Confirmed</div>
+            <div class="slicer-item"><div class="slicer-check unchecked"></div>Deaths</div>
+            <div class="slicer-item"><div class="slicer-check unchecked"></div>Recovered</div>
+          </div>
+        </div>
+      </div>
+      <div class="visual">
+        <div class="visual-header"><span class="visual-title">Confirmed Cases by WHO Region</span><span class="visual-menu">···</span></div>
+        <canvas id="regionChart" height="190"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 2 -->
+  <div class="tab-panel" id="tab-deaths">
+    <div class="report-title-strip">
+      <div><h1>☠️ Deaths Analysis</h1><p>Total Deaths &amp; Death Rate per 100 Cases · Filtered: Confirmed &gt; 1,000</p></div>
+      <div class="stamp">Global Death Rate: 3.97%<br>Total Deaths: 654,036</div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi-card red"><div class="kpi-label">Highest Death Count</div><div class="kpi-value">148,011</div><div class="kpi-sub">🇺🇸 United States</div></div>
+      <div class="kpi-card red"><div class="kpi-label">Highest Death Rate</div><div class="kpi-value">28.56%</div><div class="kpi-sub">🇾🇪 Yemen (per 100 cases)</div></div>
+      <div class="kpi-card"><div class="kpi-label">Global Death Rate</div><div class="kpi-value">3.97%</div><div class="kpi-sub">Per 100 confirmed cases</div></div>
+      <div class="kpi-card"><div class="kpi-label">Lowest Rate (major outbreak)</div><div class="kpi-value">2.26%</div><div class="kpi-sub">🇮🇳 India</div></div>
+    </div>
+    <div class="g2">
+      <div class="visual">
+        <div class="visual-header"><span class="visual-title">Top 10 — Total Deaths</span><span class="visual-menu">···</span></div>
+        <table class="pbi-table"><thead><tr><th>#</th><th>Country</th><th class="num-col">Deaths</th><th class="bar-col"></th></tr></thead><tbody id="deathsTable"></tbody></table>
+      </div>
+      <div class="visual">
+        <div class="visual-header"><span class="visual-title">Top 10 — Death Rate per 100 Cases</span><span class="visual-menu">···</span></div>
+        <table class="pbi-table"><thead><tr><th>#</th><th>Country</th><th class="num-col">Rate %</th><th class="bar-col"></th></tr></thead><tbody id="deathRateTable"></tbody></table>
+        <div class="insight-card">⚠️ <strong>Analyst Note:</strong> Yemen, UK &amp; Belgium show high death rates due to <em>limited early testing</em> — only severe cases were confirmed, inflating the fatality percentage.</div>
+      </div>
+    </div>
+    <div class="visual" style="margin-top:10px;">
+      <div class="visual-header"><span class="visual-title">Death Rate Comparison — Top 10</span><span class="visual-menu">···</span></div>
+      <canvas id="deathRateChart" height="100"></canvas>
+    </div>
+  </div>
+
+  <!-- PAGE 3 -->
+  <div class="tab-panel" id="tab-recovery">
+    <div class="report-title-strip">
+      <div><h1>💚 Recovery Analysis</h1><p>Total Recovered &amp; Recovery Rate per 100 Cases · 187 Countries</p></div>
+      <div class="stamp">Global Recovery Rate: 57.45%<br>Total Recovered: 9,468,087</div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi-card green"><div class="kpi-label">Most Recoveries (Absolute)</div><div class="kpi-value">1.85M</div><div class="kpi-sub">🇧🇷 Brazil</div></div>
+      <div class="kpi-card green"><div class="kpi-label">Highest Recovery Rate</div><div class="kpi-value">98.38%</div><div class="kpi-sub">🇩🇯 Djibouti</div></div>
+      <div class="kpi-card"><div class="kpi-label">Global Recovery Rate</div><div class="kpi-value">57.45%</div><div class="kpi-sub">Per 100 confirmed cases</div></div>
+      <div class="kpi-card"><div class="kpi-label">Countries Above 90% Rate</div><div class="kpi-value">12</div><div class="kpi-sub">Of 187 tracked countries</div></div>
+    </div>
+    <div class="g2">
+      <div class="visual">
+        <div class="visual-header"><span class="visual-title">Top 10 — Total Recovered</span><span class="visual-menu">···</span></div>
+        <table class="pbi-table"><thead><tr><th>#</th><th>Country</th><th class="num-col">Recovered</th><th class="bar-col"></th></tr></thead><tbody id="recoveredTable"></tbody></table>
+      </div>
+      <div class="visual">
+        <div class="visual-header"><span class="visual-title">Top 10 — Recovery Rate per 100 Cases</span><span class="visual-menu">···</span></div>
+        <table class="pbi-table"><thead><tr><th>#</th><th>Country</th><th class="num-col">Rate %</th><th class="bar-col"></th></tr></thead><tbody id="recoveryRateTable"></tbody></table>
+        <div class="insight-card green">✅ <strong>Insight:</strong> Island nations and early-containment countries dominate. Djibouti (98.4%), Iceland (98.3%), New Zealand (97.2%) contained spread early and treated nearly every case successfully.</div>
+      </div>
+    </div>
+    <div class="visual" style="margin-top:10px;">
+      <div class="visual-header"><span class="visual-title">Recovery Rate — Top 10 Countries</span><span class="visual-menu">···</span></div>
+      <canvas id="recoveryChart" height="100"></canvas>
+    </div>
+  </div>
+
+  <!-- PAGE 4 -->
+  <div class="tab-panel" id="tab-regions">
+    <div class="report-title-strip">
+      <div><h1>📍 Regional Breakdown</h1><p>Cases, Deaths &amp; Recovery by WHO Region · Fastest Growing Outbreaks</p></div>
+      <div class="stamp">6 WHO Regions · 187 Countries<br>Americas most affected</div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi-card red"><div class="kpi-label">Most Affected Region</div><div class="kpi-value">Americas</div><div class="kpi-sub">8.84M cases · 53.6% of global</div></div>
+      <div class="kpi-card"><div class="kpi-label">Least Affected Region</div><div class="kpi-value">W. Pacific</div><div class="kpi-sub">292,428 cases · 1.8% of global</div></div>
+      <div class="kpi-card amber"><div class="kpi-label">Fastest Growing (1-wk)</div><div class="kpi-value">+226%</div><div class="kpi-sub">Papua New Guinea</div></div>
+      <div class="kpi-card"><div class="kpi-label">New Cases This Week</div><div class="kpi-value">228,693</div><div class="kpi-sub">Across all regions</div></div>
+    </div>
+    <div class="g2">
+      <div class="visual">
+        <div class="visual-header"><span class="visual-title">Deaths vs Recovered by WHO Region</span><span class="visual-menu">···</span></div>
+        <canvas id="regionStackedChart" height="210"></canvas>
+      </div>
+      <div class="visual">
+        <div class="visual-header"><span class="visual-title">Fastest Growing Outbreaks — 1-Week % Increase</span><span class="visual-menu">···</span></div>
+        <table class="pbi-table"><thead><tr><th>#</th><th>Country</th><th class="num-col">1-Wk %</th><th class="num-col">Confirmed</th><th class="bar-col"></th></tr></thead><tbody id="growthTable"></tbody></table>
+        <div class="insight-card">📊 <strong>Analyst Note:</strong> High % growth in countries with low case bases is statistically volatile. Monitor absolute numbers alongside percentages for meaningful trend analysis.</div>
+      </div>
+    </div>
+    <div class="visual" style="margin-top:10px;">
+      <div class="visual-header"><span class="visual-title">Confirmed Cases by WHO Region (% Share)</span><span class="visual-menu">···</span></div>
+      <canvas id="regionPieChart" height="110"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<div class="pbi-footer">
+  <span>COVID-19 Global Analysis · Built by Mohit Mahajan · github.com/Mohit0702</span>
+  <span>Data: WHO / Kaggle · country_wise_latest.csv · 187 countries · 15 features</span>
+</div>
+
+<script>
+document.querySelectorAll('.page-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+const confirmedCountries = ['US','Brazil','India','Russia','South Africa','Mexico','Peru','Chile','United Kingdom','Iran'];
+const confirmedVals = [4290259,2442375,1480073,816680,452529,395489,389717,347923,301708,293606];
+const deathsCountries = ['US','Brazil','United Kingdom','Mexico','Italy','India','France','Spain','Peru','Iran'];
+const deathsVals = [148011,87618,45844,44022,35112,33408,30212,28432,18418,15912];
+const deathRateCountries = ['Yemen','United Kingdom','Belgium','Italy','France','Hungary','Netherlands','Mexico','Spain','Canada'];
+const deathRateVals = [28.56,15.19,14.79,14.26,13.71,13.40,11.53,11.13,10.44,7.68];
+const recoveredCountries = ['Brazil','US','India','Russia','Chile','Mexico','South Africa','Peru','Iran','Pakistan'];
+const recoveredVals = [1846641,1325804,951166,602249,319954,303810,274925,272547,255144,241026];
+const recoveryRateCountries = ['Djibouti','Iceland','New Zealand','Qatar','Malaysia','Norway','Estonia','Thailand','Finland','Cuba'];
+const recoveryRateVals = [98.38,98.33,97.24,97.02,96.60,95.84,94.54,94.36,93.54,92.85];
+const regions = ['Americas','Europe','S-E Asia','E. Mediterranean','Africa','W. Pacific'];
+const regionConfirmed = [8839286,3299523,1835297,1490744,723207,292428];
+const regionDeaths = [342732,211144,41349,38339,12223,8249];
+const regionRecovered = [4468616,1993723,1156933,1201400,440645,206770];
+const growthCountries = ['Papua New Guinea','Gambia','Bahamas','Zimbabwe','Libya','Ethiopia','Botswana','Lesotho'];
+const growthVals = [226.32,191.07,119.54,57.85,42.78,42.52,41.57,40.67];
+const growthConfirmed = [62,326,382,2704,2827,14547,739,505];
+
+Chart.defaults.font.family = "'Segoe UI',Tahoma,Geneva,Verdana,sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.color = '#605e5c';
+Chart.defaults.borderColor = '#edebe9';
+const PBI = ['#1f4078','#2e75b6','#4472c4','#5b9bd5','#70ad47','#ed7d31','#a9d18e','#ffc000','#ff0000','#c00000'];
+
+new Chart(document.getElementById('confirmedChart'),{type:'bar',data:{labels:confirmedCountries,datasets:[{data:confirmedVals,backgroundColor:confirmedVals.map((_,i)=>PBI[i]||'#4472c4'),borderRadius:2,borderSkipped:false}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>(v/1e6).toFixed(1)+'M'},grid:{color:'#f3f2f1'}},y:{grid:{display:false}}}}});
+new Chart(document.getElementById('outcomeChart'),{type:'doughnut',data:{labels:['Recovered (57.5%)','Active (38.6%)','Deaths (4.0%)'],datasets:[{data:[9468087,6358362,654036],backgroundColor:['#70ad47','#ffc000','#c00000'],borderColor:'#fff',borderWidth:2,hoverOffset:4}]},options:{cutout:'62%',plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:14}}}}});
+new Chart(document.getElementById('regionChart'),{type:'bar',data:{labels:regions,datasets:[{label:'Confirmed',data:regionConfirmed,backgroundColor:'#2e75b6',borderRadius:2}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>(v/1e6).toFixed(0)+'M'},grid:{color:'#f3f2f1'}}}}});
+new Chart(document.getElementById('deathRateChart'),{type:'bar',data:{labels:deathRateCountries,datasets:[{label:'Death Rate %',data:deathRateVals,backgroundColor:deathRateVals.map(v=>v>15?'#c00000':v>10?'#ed7d31':'#ffc000'),borderRadius:2}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>v+'%'},grid:{color:'#f3f2f1'}}}}});
+new Chart(document.getElementById('recoveryChart'),{type:'bar',data:{labels:recoveryRateCountries,datasets:[{label:'Recovery Rate %',data:recoveryRateVals,backgroundColor:'#70ad47',borderRadius:2}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{min:88,ticks:{callback:v=>v+'%'},grid:{color:'#f3f2f1'}}}}});
+new Chart(document.getElementById('regionStackedChart'),{type:'bar',data:{labels:regions,datasets:[{label:'Recovered',data:regionRecovered,backgroundColor:'#70ad47',stack:'a',borderRadius:2},{label:'Deaths',data:regionDeaths,backgroundColor:'#c00000',stack:'a',borderRadius:2}]},options:{plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:12}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,ticks:{callback:v=>(v/1e6).toFixed(0)+'M'},grid:{color:'#f3f2f1'}}}}});
+new Chart(document.getElementById('regionPieChart'),{type:'pie',data:{labels:regions,datasets:[{data:regionConfirmed,backgroundColor:['#c00000','#2e75b6','#70ad47','#ffc000','#7030a0','#ed7d31'],borderColor:'#fff',borderWidth:2}]},options:{plugins:{legend:{position:'right',labels:{font:{size:11},padding:14}}}}});
+
+const B=['gold','silver','bronze'];
+function buildTable(id,names,vals,max,bc,sfx){document.getElementById(id).innerHTML=names.map((n,i)=>`<tr><td><span class="rank-badge ${B[i]||''}">${i+1}</span></td><td>${n}</td><td class="num-col"><strong>${vals[i].toLocaleString()}${sfx}</strong></td><td class="bar-col"><div class="pbi-inline-bar ${bc}" style="width:${(vals[i]/max*100).toFixed(0)}%"></div></td></tr>`).join('');}
+buildTable('deathsTable',deathsCountries,deathsVals,148011,'red','');
+buildTable('deathRateTable',deathRateCountries,deathRateVals,28.56,'amber','%');
+buildTable('recoveredTable',recoveredCountries,recoveredVals,1846641,'green','');
+buildTable('recoveryRateTable',recoveryRateCountries,recoveryRateVals,98.38,'green','%');
+document.getElementById('growthTable').innerHTML=growthCountries.map((n,i)=>`<tr><td><span class="rank-badge ${B[i]||''}">${i+1}</span></td><td>${n}</td><td class="num-col"><strong style="color:#ed7d31">+${growthVals[i]}%</strong></td><td class="num-col">${growthConfirmed[i].toLocaleString()}</td><td class="bar-col"><div class="pbi-inline-bar amber" style="width:${(growthVals[i]/226.32*100).toFixed(0)}%"></div></td></tr>`).join('');
+</script>
+</body>
+</html>
